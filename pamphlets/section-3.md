@@ -145,11 +145,35 @@ constraints or the domain of the attribute(attribute domains).
 ## 33-33 - Rows
 tuple = row = single record of data
 
-All of the tuples or rows(all of the data that iis in the table), is called **cardinality**.
+All of the tuples or rows(all of the data that is in the table), is called **cardinality**.
+
 All of the columns is called degree.
 
 ## 34-34 - Primary And Foreign Keys
+Primary key: Uniquely identifies a row(record).
+
+Foreign key: A foreign key, references the primary key of a different table. Therefore allowing a relationship to be formed.
+
 ## 35-35 - OLTP vs OLAP
+TODO: Video file was corrupted.
+
+![](../img/35-35-1.png)
+
 ## 36-36 - Exercise OLTP vs OLAP
+1) OLTP. It's a transactional DB. Why is it a transactional DB? Why it's OLT?
+   It's OLTP because it's being used to drive the day to day ofo a business.
+2) OLAP. Why is it an analytical platform?
+   A DB that's being used to figure out what new products we should offer, is to look to the future to do kinda like an analysis on where we are and what
+   we're doing. That's typically used for analysis.
+3) OLAP. We're using a DB to figure out what's going oon here, what is in the company, what data, statics do we need to run in order to figure out(we're
+   pumping out data from a DB and we're trying to figure out some stuff on top of it.)
+4) OLTP. Because it's being used to drive day to day of the business. EVENTUALLY it could be fed into a system that could use it to derive analytics
+   to for instance figure out, this is our daily active user(so it could be used in an OLAP way). **But in essence,
+   that DB that's keeping track of that stuff at that given point in time, is being used as a transactional DB** because someone
+   logging in, the record is going in(saying he's logged in).
+
 ## 37-37 - Exercise Relational Model Quiz
+File attached
+
 ## 38-38 - Endorsements On LinkedIN
+File attached
