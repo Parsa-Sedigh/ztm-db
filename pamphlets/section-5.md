@@ -369,10 +369,51 @@ SELECT * FROM users WHERE age = 20 IS FALSE;
 SELECT * FROM users WHERE age != 20;
 ```
 
+With IS keyword we can identify NULL values.
+
 ## 76-76 - NULL Coalescing
+Cleaning up your data: Replacing those NULL values with sane values. How would we do that?
+
+We would do null value substitution. It is the ability to replace NULL values to operate on the data.
+
+There is a function called coalesce which allows us to do this:
+
+```sql
+SELECT coalesce(<column>, 'Empty') AS column_alias FROM <table>; -- 'Empty' is the fallback value
+```
+
+Since we're running a function against a column, we have to alias the column name if we don't want it to be named after the function that
+was executed upon it. Because when you execute a function on a column, it loses it's' column name, because you're now sensibly changing that data.
+
+Null value substitution:
+
+Coalesce returns the last non-null value in a list.
+
+We can give coalesce, multiple columns to fall back on. So, if you had a table that had multiple columns that may or may not contain 
+data, you could coalesce against each column:
+```sql
+SELECT coalesce(<column 1>, <column 2>, <column 3>, 'Empty') As combined_values FROM <table>;
+```
+In above example, column 1 is the first one that it's gonna check. If it doesn't have a null value, then that's the one we're returning. But if it has a null
+value, we're gonna fall back(fall through) on column2, If column2 doesn't have a null value, we return that value, but if it has a null value again,
+we fall through column3. If column3 has null value, return 'Empty', else return it's value
+
+```sql
+SELECT sum(coalesce(age, 20)) FROM "student";
+```
+
 ## 77-77 - Exercise Null Value Coalescing
 File
 ## 78-78 - 3 Valued Logic
+Besides true and false, the result of logical expressions can also be unknown.
+
+In most programming languages, unknown would often result in false. It makes snese, if you don;t know sth, it must be false.
+But in SQL, there's a slightly diferent approach and we see that earilier because:
+```sql
+SELECT null = null -- returns null not true
+```
+
+
 ## 79-79 - Exercise 3 Valued Logic
 File
 ## 80-80 - BETWEEN AND
