@@ -43,7 +43,7 @@ We have 2 types of functions:
 1) aggregate: They take data and produce one single value. Aggregate functions operate on many records to produce 1 value. Like summing all the salaries.
 An aggregate function produces a summary.
 2) scalar(non-aggregate): They run against each individual row. So you give them inputs and they're gonna run against each individual row, so you get 
-multiple outputs. These functions operate oon each record independently. Like concat() function.
+multiple outputs. These functions operate on each record independently. Like concat() function.
 
 ## 58-58 - Aggregate Functions
 ![](../img/58-58-1.png)
@@ -407,12 +407,81 @@ File
 ## 78-78 - 3 Valued Logic
 Besides true and false, the result of logical expressions can also be unknown.
 
-In most programming languages, unknown would often result in false. It makes snese, if you don;t know sth, it must be false.
-But in SQL, there's a slightly diferent approach and we see that earilier because:
+In most programming languages, unknown would often result in false. It makes sense, if you don;t know sth, it must be false.
+But in SQL, there's a slightly different approach and we see that earlier because:
 ```sql
 SELECT null = null -- returns null not true
 ```
 
+![](../img/53-53-1.png)
+
+Depending on what we do, a value could be null and if it's null and we compare against it in some logical fashion, t may return us null,
+it may return us unknown. 
+
+So 3-valued logic means each expression can have 3 different outcomes: true, false, null. We want to avoid null as much as possible(not always though!),
+
+Null doesn't mean it's' nothing, it just means we don't know what it is. The SQL null value could be anything. SQL doesn't know about it, itt could be anything.
+
+Nothing equals null, not even null itself. Each null could be different. 
+
+Null equals null is not true, not false, it's null(SQL doesn't know this). 
+
+That is why we use the IS NULL check. Because we can''t null to other things, we need a special operator in order to tell us if sth null.
+
+EX)
+
+`(NULL = 1) OR (1 = 1)`
+
+Note: NULL = 1 returns NULL
+
+The output is: true. Because when we have an OR, not actually but conceptually, we're starting a separate filter. So: NULL OR true. Since one of the sides of
+OR is true, it returns true.
+
+EX)
+
+(NULL = 1) AND (0 = 1)
+
+returns null. Because null AND false is null.
+
+NULL is always unknown.
+
+ex)
+
+`
+SELECT <column> FROM <table> WHERE <column> = NULL
+`
+
+is gonna return null. We're not gonna get any result.
+
+Instead do:
+
+`
+SELECT <column> FROM <table> WHERE <column> IS NULL
+`
+
+### Strange scenarios:
+
+ex)
+
+```sql
+SELECT <column> FROM <table> WHERE (<column> = NULL) OR (NOT <column> = NULL)
+```
+
+We know:
+
+- sth = NULL -> returns null
+- NOT sth = NULL -> also returns null because NOT NULL returns NULL
+- NULL OR NULL -> NULL
+
+So nothing will be returned.
+
+`SELECT <column> FROM <table> WHERE (<column> IS NULL) OR (<column IS NOT NULL>)`
+
+Returns everything(the entire table)!
+
+**Note:** The equal sign with NULL doesn't work. Instead use the `IS` keyword.
+
+SQL differs from many programming languages because that it has 3 valued logic.
 
 ## 79-79 - Exercise 3 Valued Logic
 File
