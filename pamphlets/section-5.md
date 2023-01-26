@@ -413,7 +413,7 @@ But in SQL, there's a slightly different approach and we see that earlier becaus
 SELECT null = null -- returns null not true
 ```
 
-![](../img/53-53-1.png)
+![](../img/78-78-1.png)
 
 Depending on what we do, a value could be null and if it's null and we compare against it in some logical fashion, t may return us null,
 it may return us unknown. 
@@ -486,15 +486,218 @@ SQL differs from many programming languages because that it has 3 valued logic.
 ## 79-79 - Exercise 3 Valued Logic
 File
 ## 80-80 - BETWEEN AND
+Shorthand to match against a range of values.
+
+```sql
+SELECT <column> FROM <table> WHERE <column> BETWEEN X AND Y
+```
+We're doing an inclusive range search. Anything that is X oor Y or in between, will be returned and this counts for dates, numbers and ... .
+
+The equivalent is:
+```sql
+SELECT <column> FROM <table> WHERE <column> >= X AND <column> <= Y
+```
+
+Note that BETWEEN AND is sensitive to the order of arguments.
+
+We use it because it's more readable and maintainable.
+
 ## 81-81 - Exercise BETWEEN AND
 File
 ## 82-82 - IN Keyword
+What if I want to find multiple values but not write endless AND statements?
+
+The IN keyword is used to check if a value matches any value in a list of values.
+
+```sql
+SELECT * FROM <table> WHERE <column> IN (value1, value2, ...)
+
+-- equivalent:
+SELECT * FROM <table> WHERE <column> = <value1> OR <column> = <value2> OR ...
+```
+
 ## 83-83 - Exercise IN Keyword
 File
 ## 84-84 - LIKE
+### Partial lookups:
+What if you don't know exactly what you're searching for?
+
+```sql
+SELECT first_name FROM employees WHERE first_name LIKE 'M%'; -- get everyone who's name start with 'M'
+```
+
+Pattern matching:
+
+In order to use LIKE you need to build patterns to match! What kind of patterns can we match?
+
+Pattern matching happens with wildcards. Wildcard is placeholder that we can put in a for example LIKE operator to match parts of strings.
+
+| Patten wildcard |   meaning  |
+|-----------------|-----|
+| %               |  any number of characters   |
+| _               |   1 character  |
+
+
+![](../img/83-83-1.png)
+
+### Like keyword
+Postgres LIKE **only** does text comparison, so we must **cast** whatever we use to text.
+
+Postgres only does the LIKe operator against text.
+
+There are 2 different ways of casting:
+
+### Casting to text
+
+```sql
+CAST(salary AS text); -- salary is a number column
+
+-- shorthand version
+salary::text
+```
+
+### ILIKE keyword
+case insensitive matching
+
+```sql
+name ILIKE '%MO';
+```
+
 ## 85-85 - Exercise Like Keyword
+
+
 ## 86-86 - Dates And Timezones
+GMT = Greenwich mean time
+
+UTC = universal time coordinate
+
+UTC is a standard. It's a way to measure time, it's not a timezone, no country in the world is using UTC to determine it's time.
+
+What's the difference?
+
+GMT is a timezone and UTC is a time standard.
+
+For an app that everyone in the world could use, we have to use UTC. Why we can't just GMT?
+
+UTC and GMT share the same current time. In essence they are the same, but conceptually they're different.
+
+Why we can't use our local time zone and just offset everything?
+
+We could! But it doesn't scale.
+
+ALWAYS USE UTC:
+
+```sql
+SET TIME ZONE 'UTC'; -- sets the current session in UTC
+SHOW TIMEZONE;
+```
+
+No territories use UTC
+
+**Postgres saves everything already in UTC.** They go even further, they assume everything you give it that is date or time, is UTC. We have to
+do special operations in order to table postgres that this is of a different timezone.
+
 ## 87-87 - Setting Up Timezones
+How set the timezone for all of the sessions of the user you're logged in with?
+
+Note: On windows or linux, your user should be `postgres`.
+
+But if you're on mac and you have postgres.app installed, your username should be the username you logged in with on your mac
+
+```sql
+ALTER USER postgres SET TIMEZONE='UTC';
+```
+
+After above command, if you run `SHOW TIMEZONE`, you still see `UTC+1`. To fix this, kill all of your connections and then reconnect to DB.  
+Then run SHOW TIMEZONE again.
+
+With this, all of our future sessions(not only this session) will be UTC.
+
 ## 88-88 - How Do We Format Date And Time
+What does UTC look like? Or how do dates look?
+
+Postgres uses ISO-8601 which is a standard that tells us how we should format dates and times(show them like this, process them like this).
+
+### ISO-8601 format for datetime:
+
+YYYY-MM-DDTHH:MM:SS
+
+2017-08-17T12:47:16+02:00
+
++02:00 means the timezone is a plus 2 hour offset from UTC. This part is optional because if you don't give it, it will assume that it is already in UTC, so
+it doesn't have a timezone, it's UTC format.
+
+Not giving a timezone to sth, assumes that it's already UTC.
+
+UTC is a time standard, ISO-8601 is a formatting standard, it's a way to depict a UTC date and time in a uniform way. Postgres at it's core uses UTC and
+the way postgres will store date formats is in the standard of ISO-8601.
+
+A format is a way of representing a date and time.
+
+### Timestamp:
+A timestamp is a date with time and (potentially) timezone info.
+
 ## 89-89 - Timestamps
+```sql
+SELECT now();
+```
+
+With above query, we get a ISO-8601 formatted string potentially with the timezone information depending on timezone set on your postgres installation. 
+
+Timestamps are utilized to store more granular info about our date. Say you wanted to store the last time someone logged in. In that case, you would want to
+store the timezone info and ... .
+
+EX) example of timestamp:
+
+1800-01-01 00:00:00.00 -5
+
+YYYY-MM-DD HH:MI:SS.MS T
+
+There are 2 different ways of storing timestamps:
+
+```sql
+CREATE TABLE timezones (
+    ts TIMESTAMP WITHOUT TIME ZONE,
+    tz TIMESTAMP WITH TIME ZONE,
+)
+```
+
+2 nuances with timestamps:
+1) the one with `WITH TIME ZONE` has extra info which is the timezone itself(`WITHOUT TIME ZONE` doesn't store timezone).
+2) the one with `WITHOUT TIME ZONE` doesn't offset the time with timezone that you entered, according to that timezone. Instead, it just stores the time
+and won't look at the provided timezone. For example if you enter: '2000-01-01 10:00:00-05' in a column with `TIMESTAMP WITH TIME ZONE`, it will ignore the timezone
+and won't offset the time you entered. So it acts if the time we're giving it, is already UTC(even if it isn't! So even if you specified a timezone with some offset
+which means it's not UTC!) But when we're inserting time into a table that has `WITH TIME ZONE`, we're saying: hey postgres, this has this timezone, so make
+sure that when you store it(it's gonna store times in UTC by default), make sure you take into account the timezone(which means it will offset the time according to
+given timezone).
+
+So when we insert timestamp info, we can insert it in a way that tells postgres: Hey ignore the timezone or take into account timezone which means it will offset
+the time.
+
+### Use timestamps or dates?
+It depends on what you're storing. For the majority of the cases, we often use dates. Because the granular info(time and timezones) that we require isn't necessary.
+
+It's easy to go from a date to a timestamp and vice versa.
+
 ## 90-90 - Date Functions
+## 91-91 - Date Difference And Casting
+## 92-92 - Age Calculation
+## 93-93 - Extracting Information
+## 94-94 - Intervals
+## 95-95 - Exercise Date and Timestamp
+File
+## 96-96 - DISTINCT
+## 97-97 - Exercise Distinct Keyword
+File
+## 98-98 - Sorting Data
+## 99-99 - Exercise Sorting Data
+File
+## 100-100 - Multi Table SELECT
+## 101-101 - Inner Join
+## 102-102 - Self Join
+## 103-103 - Outer Join
+## 104-104 - Less Common Joins
+https://www.db-fiddle.com/f/dAb6mjWqWay6ECY1o2v478/0
+
+## 105-105 - InnerJoin Exercises
+## 106-106 - USING Keyword
