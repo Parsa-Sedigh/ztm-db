@@ -666,7 +666,7 @@ CREATE TABLE timezones (
 1) the one with `WITH TIME ZONE` has extra info which is the timezone itself(`WITHOUT TIME ZONE` doesn't store timezone).
 2) the one with `WITHOUT TIME ZONE` doesn't offset the time with timezone that you entered, according to that timezone. Instead, it just stores the time
 and won't look at the provided timezone. For example if you enter: '2000-01-01 10:00:00-05' in a column with `TIMESTAMP WITH TIME ZONE`, it will ignore the timezone
-and won't offset the time you entered. So it acts if the time we're giving it, is already UTC(even if it isn't! So even if you specified a timezone with some offset
+and won't offset the time you entered. So it acts if the time we're giving it is already UTC(even if it isn't! So even if you specified a timezone with some offset
 which means it's not UTC!) But when we're inserting time into a table that has `WITH TIME ZONE`, we're saying: hey postgres, this has this timezone, so make
 sure that when you store it(it's gonna store times in UTC by default), make sure you take into account the timezone(which means it will offset the time according to
 given timezone).
@@ -680,10 +680,159 @@ It depends on what you're storing. For the majority of the cases, we often use d
 It's easy to go from a date to a timestamp and vice versa.
 
 ## 90-90 - Date Functions
+### Current date
+To get current date, there are 2 main ways:
+```sql
+SELECT NOW()::date;
+SELECT CURRENT_DATE;
+```
+These will give you a formatted subset of the ISO-8601. Sth like: 1800-01-01 .
+
+### Formatting
+```sql
+SELECT TO_CHAR(CURRENT_DATE, 'dd/mm/yyyy');
+```
+With TO_CHAR() we can format a date.
+
+In europe is common to use slashes and it's first day and month and then year.
+
+### Format modifiers
+Each modifier has an identifier. D is for day, M for month and Y for year.
+
 ## 91-91 - Date Difference And Casting
+We want to calculate the different between two dates.
+
+```sql
+SELECT now() - '1800/01/01';
+```
+With above, postgres will return an interval(there is no name for the returned column). The result is:
+
+?column?
+
+<no> days: HH:MI:SS.MS
+
+**Subtracting dates returns the difference in days.**
+
+### To date
+```sql
+SELECT date '1800/01/01';
+```
+Returns:
+
+?column?
+
+1800-01-01
+
+The above, converts a text to a date format for postgres which is ISO-8601.
+
+If you put `date` in front of a string(before a text), it will consider it a date. It will also format it at the same time.w
+
+Interesting, because 1800/01/01 is not valid syntax for the ISO-8601, because it doesn't use slashes. But when we cast it to a date,
+it's gonna cast it to a ISO-8601 date. It converts the date to a date format for postgres which is ISO-8601 that uses dashes instead of slashes.
+
 ## 92-92 - Age Calculation
+### Calculate age:
+This is wrong ❌:
+```sql
+SELECT AGE('1800/01/01');
+```
+Returns:
+
+?column?
+
+ERROR
+
+When we calculate age, we need to pass it a valid date and not a string(we need to case string to date):
+
+Correct ✅:
+
+```sql
+SELECT AGE(date '1800/01/01');
+```
+
+Returns:
+
+?column?
+
+<no> years <no> months <noo> days
+
+### Calculate age between 2 dates
+```sql
+SELECT AGE(date '1992/11/13', date '1800/01/01');
+```
+
+Returns:
+
+192years 10months 122 days
+
+AGE() returns an interval so we may want to cast the result to sth else like the amount of days. For this, you can use TO_CHAR() on the result.
+
 ## 93-93 - Extracting Information
+### Extract day:
+```sql
+SELECT EXTRACT(DAY FROM date '1992/11/13') AS DAY; -- you can use MONTH and YEAR too
+```
+
+### Round a date:
+For example if you don't care about month and day(set them to lowest possible values). Like getting everything from the beginning of the month and
+end of the month. So we can do a DATE_TRUNC() against the month of the CURRENT_DATE.
+
+For example:
+```sql
+SELECT DATE_TRUNC('year', date '1992/11/13');
+```
+Result:
+
+?column?
+
+1992-01-01
+
+```sql
+SELECT DATE_TRUNC('month', date '1992/11/13');
+```
+Result:
+
+?column?
+
+1992-11-01
+
+**BUT:**
+
+If you pass day to DATE_TRUNC() , it's not gonna do anything to it(the result is the same as the date input), unless you give it a timestamp which it will
+set all of the values in the timestamp to 0(only the respective things). So with timestamp, we have more granular control over truncation.
+
+```sql
+SELECT DATE_TRUNC('day', date '1992/11/13');
+```
+Result:
+
+?column?
+
+1992-11-13
+
 ## 94-94 - Intervals
+### Interval
+Find the date of purchase for last 30 days:
+```sql
+SELECT *
+FROM orders
+WHERE purchaseDate <= now() - interval '30 days' -- TODO: Shouldn't his be purchaseDate >= now() ...
+```
+
+Returns:
+
+<30 days before given date>
+
+Interval allows us to write queries in a way that mirrors language. It can store and manipulate a period of time in years, months, days, hours, minutes,
+seconds, etc.
+
+```sql
+SELECT EXTRACT(year FROM INTERVAL '5 years 20 months');
+```
+Returns: 6. Because 20 months is more than a year.
+
+**Note:** When you want to do manipulations with dates towards the future or past, you should use INTERVAL. 
+
 ## 95-95 - Exercise Date and Timestamp
 File
 ## 96-96 - DISTINCT
