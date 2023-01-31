@@ -754,7 +754,7 @@ Returns:
 
 ?column?
 
-<no> years <no> months <noo> days
+<no> years <no> months <no> days
 
 ### Calculate age between 2 dates
 ```sql
@@ -835,16 +835,127 @@ Returns: 6. Because 20 months is more than a year.
 
 ## 95-95 - Exercise Date and Timestamp
 File
+
 ## 96-96 - DISTINCT
+### Remove duplicates:
+Distinct clause keeps one row for each group of duplicates.
+
+```sql
+SELECT DISTINCT <col1>, <col2> FROM <table>;
+```
+
+Using distinct with multiple columns after DISTINCT keyword vs just 1 column for DISTINCT, possibly returns more rows because
+when using multiple columns for DISTINCT, it will only remove the rows that have duplicate items for ALL of the specified columns.
+
 ## 97-97 - Exercise Distinct Keyword
 File
 ## 98-98 - Sorting Data
+When passing multiple columns to ORDER BY, THE ASC or DESC applies to the exact column it was specified for, not all of the columns:
+```sql
+SELECT first_name, last_name FROM employees ORDER BY first_name, last_name DESC;
+```
+In above example, first_name would be ordered ascending(default one) and last_name descending.
+
+**Note:** The relational model doesn't give you results based on a specific order unless explicitly asked for.
+
 ## 99-99 - Exercise Sorting Data
 File
+
 ## 100-100 - Multi Table SELECT
+```sql
+SELECT a.emp_no,
+       CONCAT(a.first_name, a.last_name) as "name",
+       b.salary
+FROM employeees as a, salariees as b
+```
+The result would be we assign every single salary from the salary table to every single individual, multiple times.
+So for example a person would have multiple salaries in the result. Why? Why is it adding so many salaries tto 1 person?
+
+Instead of having repeated results, let's filter them using WHERE clause
+```sql
+SELECT a.emp_no,
+       CONCAT(a.first_name, a.last_name) as "name",
+       b.salary
+FROM employeees as a, salariees as b
+WHERE a.emp_no = b.emp_no -- <------
+```
+
+When selecting from multiple tables oro a table with itself, it's important to create a link between those tables, otherwise for each record
+from the other table, it's gonna add it to each record from the original table!
+
+The most common approach of joining, is to link the primary key to the foreign key.
+
 ## 101-101 - Inner Join
+```sql
+SELECT a.emp_no,
+       CONCAT(a.first_name, a.last_name) as "name",
+       b.salary
+FROM employeees as a,
+INNER JOIN salariees as b ON a.emp_no = b.emp_no
+```
+
+**Note:** When you do a join, you have to decide what's going to be on the left side and what's going to be on the right side. Meaning 
+where am I selecting from and what I'm trying to join it with.
+
+**Note:** The table we want to select FROM, is the main part of the data and the table we want to JOIN it with, is the secondary part.
+
+For example when we want to join employees to salaries, the employees table is main and salaries table is secondary table, so we select FROM employee
+and JOIN it with salary table(so `INNER JOIN salaries ...`).
+
+So we saw 2 approaches for selecting from multiple tables: using WHERE clause and using INNER JOIN. The INNER JOIN syntax is generally considered
+a best practice. It's more readable than using the where syntax. It shows what's being joined.
+
 ## 102-102 - Self Join
+Joining a table to itself.
+
+This usually can be done when a table has a foreign key referencing it's primary key.
+
+With supervisorId, we're specifying who is someone else's manager? So the table could be like this:
+
+![](../img/102-102-1.png)
+
+This is an uncommon scenario because normally you would have some kind of manager table that would keep references to these things,
+but in some tables it's easier to keep a reference to itself.
+
+What if you wanted to see the supervisors name?
+```sql
+SELECT a.id, a.name as "employee", b.name as "supervisor name" FROM employee as a, employee as b 
+WHERE a.supervisorId = b.id;
+```
+We're selecting from the **same** table twice.
+
+Self join is joining a table to itself because a primary key and a foreign key are in the same exact table. So for doing this, we need a 
+primary key and a foreign key in the same exact table that reference the same exact information(in this case supervisorId being a foreign key
+and to id column(primary key)).
+
+Using inner join:
+```sql
+SELECT a.id, a.name as "employee", b.name as "supervisor name" FROM employee as a
+INNER JOIN employees as b
+ON a.supervisorId = b.id;
+```
+
+Self join is just a variant of inner join where you join a table to itself.
+
 ## 103-103 - Outer Join
+What if I also need the rows that don't match?
+
+Outer joins add the data that don't have a match.
+
+2 types of outer joins:
+
+When we talk about the left hand side join, we're talking about the table that is in the FROM statement and when we talk about the right side of
+the join, we're talking about the table that is being joined.
+
+LEFT [OUTER] ...
+
+Any value that does not match, will be null.
+
+How many employees aren't managers?
+
+Note: left outer join goes against the table selected in FROM statement, the right outer join goes against the table that is being joined(table
+that is in the JOIN statement).
+
 ## 104-104 - Less Common Joins
 https://www.db-fiddle.com/f/dAb6mjWqWay6ECY1o2v478/0
 
