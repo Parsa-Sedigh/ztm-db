@@ -959,5 +959,20 @@ that is in the JOIN statement).
 ## 104-104 - Less Common Joins
 https://www.db-fiddle.com/f/dAb6mjWqWay6ECY1o2v478/0
 
+Cross join: Creates a combination of every row with every other row. We call this a cartesian product.
+
+Full outer join: Return results from both whether they match or not. 
+
 ## 105-105 - InnerJoin Exercises
 ## 106-106 - USING Keyword
+Simplifying the join syntax
+
+`
+... ON de.emp_no = e.emp_no
+
+-- alternative:
+
+... USING (emp_no)
+
+`
+
