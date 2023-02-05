@@ -341,8 +341,32 @@ salaries are unique values, the count col is incremented by 1 because there is o
 
 So the way you `PARTITION BY` and the way you `ORDER BY`, influence each other.
 
+**Note:** By default, if ORDER BY is supplied then the frame consists of all rows from the start of the partition up through the
+current row, plus any following rows that are equal to the current row according to the ORDER BY clause. 
+When ORDER BY is omitted the default frame consists of all rows in the partition.
+
 ## 120-120 - Solving For Current Salary
+Q: Get the current salary of an employee.
+
+A:
+![](../img/120-120-1.png)
+
+Visualization for the last query:
+![](../img/121-121-1.png)
 ## 121-121 - FIRSTVALUE
+Return a value evaluated against the first row within it's partition.
+
+Q: I want to know how my price compares to the item with the lowest price in the same category.
+![](../img/121-121-2.png)
+
+Approach 2(easier):
+```sql
+SELECT prod_id, price, category, min(price) OVER(
+        PARTITION BY category
+    ) AS "cheapest in category"
+FROM products;
+```
+
 ## 122-122 - LASTVALUE
 ## 123-123 - SUM
 ## 124-124 - ROWNUMBER
