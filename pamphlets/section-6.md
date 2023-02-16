@@ -718,15 +718,331 @@ Deciding when to use a sub-query vs when to use a join is a difficult choice.
 sub-queries still need to execute that query.
 
 ## 140-140 - Subquery Guidelines As Types
+A sub-query must be enclosed in parentheses(to denote that you're running a subquery):
+```sql
+SELECT (
+    SELECT <column>, <column>, ...
+    FROM <table>
+    [WHERE | GROUP BY | ORDER BY | ...]
+) 
+FROM <table> AS name;
+```
 
+Must be placed on the right side of the comparison operator
+```sql
+SELECT *
+FROM <table> AS <name>
+WHERE X >= (
+    SELECT MAX(<column>)
+    FROM <table>
+    [WHERE | GROUP BY | ORDER BY | ...] 
+)
+```
+
+**Note:** Sub-queries are often used in WHERE statements.
+
+Cannot manipulate their results internally(`ORDER BY` ignored). This means when a subquery runs, it has it's own context, it has it's own
+result set. But that means that whatever returns up to the parent query, you can't manipulate it. Soo if you run for example an ORDER BY 
+inside of a subquery, it's going to be **ignored**, you're not going to be ordering that result set.
+
+Use single-row operators witt single-row subqueries.
+```sql
+SELECT *
+FROM <table> AS <name>
+WHERE X >= | <= | = | != (
+    SELECT MAX(<column>)
+    FROM <table>
+    [WHERE | GROUP BY | ORDER BY | ...]
+)
+```
+When we use AVG(), MIN(), MAX() or ... , we generally are gonna use the single-row comparators(=, <, != and ...) against the subqueries that
+are going to return a **singular** result using MIN(), MAX(), AVG().  
+
+Sub-queries that return NULL, may not return any results. So if your subquery returns null, depending on what operators you are using,
+it could be that that null causes the entirety of the comparison to return null and thus return no results at all. So be careful with sub-queries that
+return null.
+
+### Types of sub-queries
+- single row
+- multiple row
+- multiple column
+- correlated
+- nested
+
+When we run a single-row sub-query, we're trying to compare a column against a single returned row which was returned from a MIN(), MAX(), AVG() or ..., 
+in other words, aggregate functions which boil own a number to one single record. So those are the ones that we would use to do a single-row return.
+
+So a single-row sub-query returns zero or one row.
+```sql
+SELECT name, salary
+FROM salaries
+WHERE salary = 
+      (SELECT AVG(salary) FROM salaries);
+```
+
+Another usage for single row subquery could be for instance in the SELECT statement where we add it as a extra column, to each and every row.
+For example in the below example, we're comparing the average salary against the baseline salary of each individual employee, because it returns zero
+or one row.
+```sql
+SELECT name, salary,
+    (SELECT AVG(salary) FROM salaries)
+    AS "Company averave salary"
+FROM salaries;
+```
+
+### Multiple row
+Returns one or more rows(sub-query returns multiple rows of data)
+
+This example shows a redundant subquery.
+
+```sql
+SELECT title, price, category
+FROM products
+WHERE category IN (
+    SELECT category FROM categories
+    WHERE categoryname IN ('Comedy', 'Family', 'Classics')
+);
+```
+In this case, this subquery gonna return 3 rows and it's gonna return the category number of each category names we've written.
+
+### multiple column 
+Returns one or moore columns - this is where a sub-query returns multiple columns.
+
+```sql
+SELECT emp_no, salary, dea.avg AS "Department average salary"
+FROM salaries AS s
+JOIN dept_emp AS de USING (emp_no)
+JOIN (
+    SELECT dept_no, AVG(salary) FROM salaries AS s2
+    JOIN dept_emp AS e USING(emp_no)
+    GROUP BY dept_no
+) AS dea USING(dept_no)
+WHERE salary > dea.avg;
+```
+### Correlated
+Reference one or more columns in the outer statement - runs against each row
+```sql
+SELECT emp_no, salary, from_date
+FROM salaries AS s 
+WHERE from_date = (
+    SELECT MAX(s2.from_date) AS max
+    FROM salaries AS s2
+    WHERE s2.emp_no = s.emp_no -- we're referencing the outer emp_no(s.emp_no)
+)
+ORDER BY emp_no
+```
+
+When you write correlated sub-queries, for instance the WHERE clause in sub-query can become a performance bottleneck if you're not careful. Why?
+Because when you correlate a sub-query, when you say: Hey sub-query, take into account the outer query's information, now the sub-query has to run
+against each individual row. So there's more processing that needs to happen for the query to execute.
+
+Now we're in essence, creating groupings by using a sub-query's WHERE statement. This isn't the most optimal way too solve this question.
+
+We need to be mindful when correlating sub-queries.
+
+### Nested
+Subquery in a subquery
+```sql
+SELECT orderlineid, prod_id, quantity
+FROM orderlines
+JOIN (
+    SELECT prod_id
+    FROM products
+    WHERE category IN (
+        SELECT category FROM categories
+        WHERE categgoryname IN ('Comedy', 'Family', 'Classics')
+    )
+) as limited USING (prod_id);
+```
 
 ## 141-141 - Using Subqueries
+Q: Show all employees older than the average age
+```sql
+SELECT first_name, last_name, birth_date
+FROM employees
+WHERE AGE(birth_date) > (
+    SELECT AVG(age(birth_date)) FROM employees    
+);
+```
+
+If we know that a sub-query can return us one particular record, or it can return us a row-set for the FROM clause, we know now 
+that we can use it to easily write a query.
+
+Q: Show the title by salary for each employee
+```sql
+SELECT emp_no, salary, from_date, (
+    SELECT title FROM titles AS t
+
+    -- we're referencing sth from outside -> so it's a correlated sub-query(because this sub-query is now related to it's parent, so we can't
+    -- take sub query and run it on it's own)
+    WHERE t.emp_no = s.emp_no AND t.from_date = s.from_date)
+)
+FROM salaries AS s
+ORDER BY emp_no;
+```
+Using sub-query in this case is not good, because we can solve it with a join.
+
+We can answer the question without a sub-query:
+```sql
+SELECT emp_no, salary, from_date, t.title
+FROM salaries AS s
+LEFT OUTER JOIN titles AS t USING (emp_no, from_date)
+ORDER BY emp_no;
+```
+We're showing all the titles, even if the title never changed.
+
+This query is faster.
+
+We can also run a normal join, so that we don't get NULL titles. For this, only remove LEFT OUTER keyword from previous solution.
+
+
 ## 142-142 - Quick Note Titles For Employees
-File
+In the video "Using Subqueries" we see a query where we try to apply combine titles with salaries to see the salary changes per title live.
+
+In the video "Inner Join" we stated that each title change happens 2 days AFTER a salary bump.
+
+
+Our query did not take this fact into account and so for each employee we would only see the initial title, but not the subsequent title changes.
+In order to address this we need to add the following to the query:
+
+````sql
+select emp_no, salary, from_date,
+(select title from titles as t
+where t.emp_no=s.emp_no and
+(t.from_date = s.from_date + interval '2 days' or t.from_date=s.from_date))
+from salaries as s
+order by emp_no;
+````
+
+This will catch both the cases where the initial title was given and any salaries linked to a subsequent title change!
 
 ## 143-143 - Getting The Latest Salaries
+Q: Show the most recent employee's salary.
+```sql
+SELECT emp_no, salary AS "most recent salary", from_date
+FROM salariies AS s
+WHERE from_date = (
+    SELECT MAX(from_date)
+    FROM salaries AS sp
+    WHERE sp.emp_no = s.emp_no -- correlated sub-query
+)
+ORDER BY emp_no ASC;
+```
+A correlated sub-query is a sub-query that references it's parent in order to have info to execute.
+
+Note: We run WHERE statement on each and every individual row.
+
+We did this query with window functions and also with views + join. The sub-query approach is less performant. Because in this case, we're
+applying this sub-query against each individual row.
+
+Another approach - using sub-query with a JOIN:
+```sql
+SELECT emp_no, salary AS "most recent salary", from_date
+FROM salariies AS s
+JOIN (
+    SELECT emp_no, MAX(from_date) AS "max"
+    FROM salaries AS sp
+    GROUP BY emp_no
+) AS ls USING (emp_no)
+WHERE ls.max = from_date
+ORDER BY emp_no ASC;
+```
+This is way more performant than the approach which we used the sub-query in the WHERE statement because in the WHERE statement, it's running
+against each individual row(it's gonna run that sub-query against each individual row). This approach is basically the same as using a view approach.
+
+When we put the sub-query in the JOIN statement like when we used a view in previous solutions, we're front loading all of that work off to the
+engine and we have less execution-time.
+
+So we can combine sub-queries with JOIN.
 
 ## 144-144 - Subquery Operators
+### Operators
+Operators that you can apply in the `WHERE` clause on sub-queries.
+
+The whole point of these operators is that they'll give you the ability to know how to operate against multi-column, multi-row, single-row sub-queries.
+They all have a specific purpose when running a sub-query in your WHERE clause.
+
+### EXISTS
+Checks if the sub-query returns any rows.
+```sql
+SELECT firstname, lastname, income
+FROM customers as c
+WHERE EXISTS(
+  SELECT * FROM orders as o
+  WHERE c.customerid = o.customerid AND totalamount > 400 -- correlated sub-query. This is gonna run against each individual row.
+) AND income > 90000;
+```
+
+### IN
+Check if the value is equal to any of the rows in the return. NULL yields NULL, for example trying to check NULL against values, you're gonna
+return NULL.
+```sql
+SELECT prod_id
+FROM products
+WHERE category IN (
+    SELECT category FROM categories
+    WHERE categoryname IN ('Comedy', 'Family', 'Classics')
+);
+```
+
+### NOT IN
+Check if the value is **not** equal to any of the rows in the return. NULL yields NULL.
+```sql
+SELECT prod_id
+FROM products
+WHERE category IN (
+    SELECT category FROM categories
+    WHERE categoryname NOT IN ('Comedy', 'Family', 'Classics')
+);
+```
+
+### ANY/SOME
+Check each row against the operator and if any comparison matches, return true. The operator in the example is `=`.
+
+Note: The comparison operators can only be applied against a single record, so we use these keywords to being able to use
+comparison operators with multiple rows returned from sub-query.
+
+These keywords are used when yeah we know the sub-query might return multiple rows and not a single row, but I still want to use my
+comparison operators. So if any of the comparisons match, return me true.
+
+```sql
+SELECT prod_id
+FROM products
+WHERE category = ANY (
+    SELECT category FROM categories
+    WHERE categoryname NOT IN ('Comedy', 'Family', 'Classics')
+);
+```
+
+The inverse of this, is `ALL`.
+
+### ALL
+Check each row against the operator and if all comparison match, Return true.
+```sql
+SELECT prod_id, title, sales
+FROM products
+JOIN inventory as i USING (prod_id)
+WHERE i.sales > ALL ( -- check each row of su-query with `>` operator
+    SELECT AVG(sales) FROM inventory
+    JOIN products as p1 USING(prod_id)
+    GROUP BY p1.category
+);
+```
+
+### Single value comparison
+Sub-query must return a single row and then check the comparator against row.
+
+**Note:** The >, <, = and ... , can only be checked against a single row, but with ALL, SOME and ... , we can use those comparators that I mentioned,
+against multiple rows.
+
+```sql
+SELECT prod_id
+FROM products
+WHERE category = (
+    SELECT category FROM categories
+    WHERE categoryname IN ('Comedy')
+);
+```
 
 ## 145-145 - Subquery Exercises
 File
