@@ -224,9 +224,28 @@ Each different DB is like a different universe! Because you're not gonna have th
 Creating databases is a restricted action. Not everyone is allowed to do it!
 
 ## 153-153 - Roles In Postgres
+### Roles
+Roles are vital to any DBMS. They determine what's allowed!
 
+A role can be a user or a group. It depends on how you setup the role.
+
+Roles have the ability to grant membership to another role. So you can give a role to a role and when that role is given tto someone else,
+they automatically have booth roles.
+
+Roles have attributes and privileges and attributes are basically the same thing as a privilege. Like attributes, define a privilege(look at the
+direction of the cross line in pic). Like you can have an attribute that says you're a super user and that can give you the privilege to do
+whatever you want(the exact direction of the arrow in pic). But you can gie individual privileges to a role, that have nothing to do with
+an attribute(the reverse order of arrow line is not possible). Super user is an attribute and it specifies a couple of privileges.
+Individual privilege could be read access, write access, the ability to create databases.
+
+So attributes can define privileges. Privileges can be given independently.
+
+When a role is created, it is given certain attributes.
+![](../img/153-153-1.png)
 
 ## 154-154 - Role Attributes And Creation
+
+
 ## 155-155 - Creating Users And Configuring Login
 ## 156-156 - Privileges
 ## 157-157 - Granting Privileges and Role Management
