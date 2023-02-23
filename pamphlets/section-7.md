@@ -244,9 +244,51 @@ When a role is created, it is given certain attributes.
 ![](../img/153-153-1.png)
 
 ## 154-154 - Role Attributes And Creation
+### Role atttribue
+When a role is created, it is given certain attributes.
 
+The privileges of a role are determined in part by it's attributes. So it's like we said: When you define a role, there are 2 different part
+to it: There are the attributes and there are the privileges and some of the attributes of that role can determine some of those privileges.
+They can say: Hey, you can do this and this and this, because you have this attribute. But privileges can be more granular than that. You can
+give specific privileges as well on top of what the attributes give you.
+
+Certain attributes can be given to a role.
+![](../img/154-154-1.png)
+
+By giving some attributes to a role, you're also defining a privilege.
+
+There are vast number of privileges outside of attributes as well. So when you define a role, there are certain attributes you can give it and
+on top of that, you can give it privileges after that are more granular.
+![](../img/154-154-2.png)
+
+### Creating role
+```sql
+CREATE ROLE readonly WITH LOGIN ENCRYPTED PASSWORD 'readonly';
+```
+Note: Always ENCRYPT when storing a role that can log in.
+
+You can now login with that role.
+
+### View roles
+![](../img/154-154-3.png)
+
+### Creating role
+(When you create a role) by default only the creator of the DB or superuser has access to it's objects(objects of the database). Anyone else, needs
+to be given access to it's objects.
+```sql
+SELECT * FROM departments;
+-- ERROR: permission denied for table departments 
+```
+
+### Creating a user
+```sql
+CREATE USER user1 WITH ENCRYPTED PASSWORD 'user1';
+```
+A user is the same as a role but it assumes login by default!
 
 ## 155-155 - Creating Users And Configuring Login
+
+
 ## 156-156 - Privileges
 ## 157-157 - Granting Privileges and Role Management
 ## 158-158 - Best Practices For Role Management
