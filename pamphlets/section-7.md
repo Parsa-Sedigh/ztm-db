@@ -59,7 +59,7 @@ When you setup your postgres, 3 databasess were created:
 Why the postgres database created when we setup postgres?
 
 ### Postgres database
-This is the default database that is created when yoou setup postgres(INITDB)
+This is the default database that is created when you setup postgres(INITDB)
 
 So the first time you initialize postgres, you can connect to the postgres database to setup your first database.
 
@@ -69,7 +69,7 @@ psql -U <user> <database>
 ```
 But what if we don't give it a database?
 
-Postgres by default will assume a connection to a database with the same name as the user, if no database is supplied.
+**Postgres by default will assume a connection to a database with the same name as the user, if no database is supplied.**
 ```shell
 psql -U postgres # this will assume you're trying to connect to a database called `postgres` because the username is postgres
 ```
@@ -284,17 +284,205 @@ SELECT * FROM departments;
 ```sql
 CREATE USER user1 WITH ENCRYPTED PASSWORD 'user1';
 ```
-A user is the same as a role but it assumes login by default!
+A user is the same as a role but it assumes login by default! So no need to say: `WITH LOGIN` when creating a user.
 
 ## 155-155 - Creating Users And Configuring Login
+There are 2 ways of creating a role and password:
+1) First connect to DB and then run sql commands like: `CREATE USER` and `CREATE ROLE`
+2) without connecting to DB and by running: `createuser` which is exposed by the binaries of postgres. You can pass `--interactive` to this command too.
 
+To alter a role and give it a password:
+```sql
+ALTER ROLE <role_name> WITH ENCRYPTED PASSWORD '<password>';
+```
+
+Note: ALTER ROLE command can also be used for users and not only roles.
+
+Now if you try to connect to postgres using new users that have a specified password, without even giving the connection command, a password, you'll
+still login! Even with giving the psql -U <username> -W and then enter the password, but we enter a wrong password, we will still login!
+
+So it's not paying attention to passwords. This has to do with the configuration of postgres.
+
+WHY?!!!
+
+**Note:** The configuration of postgres sby default will trust all default connections.
+
+If you open `pg_hba.conf` and `postgresql.conf`. First one specifies how you're allowed to connect(it has everything to do with the authentication) and the second one
+is the general configuration of postgresql.
+
+Now where are these files?
+
+For this, connect to the database and run:
+`show hba_file;` and `show config_file`(FOR postgresql.conf). Now it might tell you that you must be a superuser.
+
+Now in pg_hba.conf there is a line: 
+`
+TYPE  DATABASE USER ADDRESS METHOD
+local all      all          trust
+`
+So everything that has to do with local connections, by default is trusted.
+
+`scram-sha-256` the most comprehensive one, `md5` is less secure and `password` which sends clear text and is vulnerable sniffing and all ... attacks.
+
+We use `scram-sha-256` for external connections and for local connections, it's common to allow the superuser which is on the same machine to able to just automatically connect
+to whatever DB it needs to, so you can do maintenance, but it's better to turn on password authentication because it's better to have authentication. But a lot of people prefer
+on the local connection to not turn it on.
+
+**Tip:** After changing these files, you need to restart the DB server.
+
+Now if you set `scram-sha-256` for connections like local ones and then you try to connect to DB using password, it will fail. Because in order to be able to have a password
+that is `scram-sha-256` enabled, we need to tell postgresql that it needs to use that(`scram-sha-256`) as the encryption methodology. Because right now, the
+`password_encryption` (in `postgres.conf`) is md5 and we need to set it to `scram-sha-256`.
+
+Now let's make the METHOD column to trust to login and alter our user(don't forget to restart the database server) and run sth like:
+`ALTER USER <user> WITH PASSWORD <password>`
+
+Then make the METHOD column to `scram-sha-256` and restart the server and then login.
+
+Why we did this?
+
+Because when we changed METHOD(authentication method) to `scram-sha-256`, we have created some users before changing this method. So those users were using the default methodology for
+encryption(which was turned off, there was no encryption before).
+
+The `password_encryption` should correspond to the METHOD column in `pg_hba.conf`. 
+
+Then we needed to alter the created user to use the new encryption key. But now if we want to login as the postgres user(superuser), we can't. So what a lot of people tend to do is,
+they make the auth method of local connection of postgres user, to trust. So now the setup would be like this:
+![](../img/155-155-1.png)
 
 ## 156-156 - Privileges
+Attributes can only define so many privileges(attributes define only a small subset of privileges)!
+
+When you are not a superuser, what you can do is fairly limited depending on what default privileges are set.
+
+### Privileges
+By default, objects(tables and ...) are only available to the one who creates them.
+
+So how do we give privileges to users that are created but aren't super users?
+
+Privileges needed to be granted for roles and users to have access to certain data.
+
+Until now, we've only seen how to give **attributes** to users when we create them. Well, we need to grant privileges for them:
+
+### Granting privileges
+![](../img/156-156-1.png)
+
 ## 157-157 - Granting Privileges and Role Management
+To practice this lesson, let's put back authentication methods back to trust because it will be irritating since we always need to login with
+password. So put all METHOD rows in `pg_hba.conf` back to `trust` only for this lesson.
+```shell
+createuser --interactive # and call it privilegetest in the questions that it asks and write n for all consecutive questions.
+
+# login with postgres user on Employees database
+psql -U postgres Employees
+```
+
+Then on another terminal tab, login as privilegetest user:
+```shell
+psql -U privilegetest Employees
+
+\dt # to list the tables
+SELECT * FROM titles;
+# ERROR: permission defined for table titles
+```
+So only the owner and superuser have access.
+
+So let's grant a privilege for the user. For this, switch to a user that has the privilege to grant privilege to other users and run:
+```shell
+GRANT SELECT ON titles TO privilegetest;
+```
+
+You can also revoke select on a table:
+```sql
+REVOKE SELECT ON titles FROM privilegetest;
+```
+
+EX: When you wanna grant privilege ON ALL TABLES, you have to write the schema:
+```sql
+GRANT ALL ON ALL TABLES IN SCHEMA public TO privilegetest;
+```
+
+```sql
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM privilegetest;
+```
+
 ## 158-158 - Best Practices For Role Management
+When managing roles and permissions, always go with the "principle of least privilege".
+
+Start with no privileges at all and give privileges as needed.
+
+Don't use admin/superuser by default.
+
 ## 159-159 - Data Types & Boolean Type
+A data type is nothing more than a constraint place on a field to only allow that type of data to be filled in.
+
+Specifying a type is important because it tells the system how it can/should handle the data in that field.
+
+It's also what allows the DBMS to optimize it's algorithms for processing data by knowing it's type.
+
+A boolean type can hold true or false oor null.
+
+![](../img/159-159-1.png)
+So we can fill in y or yes as true and ... .
+
 ## 160-160 - Storing Text
+### Character
+Postgres provides three character data types:
+- char(n)
+- varchar(n)
+- text
+
+### Char(n)
+Fixed length with space padding.
+
+So if we specify a column ass CHAR(10) and we pass mo to it, postgres will store **mo + 8 spaces**.
+So char(n) will always fill the n characters whether or not you fill it completely.
+
+If you go over n, it will throw an error(the same is true for `varchar`).
+
+### varchar(n)
+variable length with no padding.
+
+If we pass mo to varchar(10), mo is the value it stores and it's not gonna pad the value with extra spaces.
+
+So this has some space saving.
+
+### Text
+unlimited length text
+
+Now why would you not always choose text over varchar and char?
+
+Because sometimes you want to put that constraint of length n. You don't want to allow an infinite amount of text in a certain field.
+
 ## 161-161 - Storing Numbers
+### Numeric
+There are 2 types of numbers in postgres:
+- integers
+- floating points
+
+### Integers
+A whole number, a number that is not a fraction. There are 3 types of integers in postgres:
+- smallint: Can range from -32,768 to 32,767
+- int
+- bigint
+
+Bigint takes more space.
+
+### Floating point
+Numbers that can contain a decimal point. There are two types(single or double precision):
+
+#### float4/float8
+- float4: Up to 6 digits passed the decimal point(precision)
+- float8: Up to 15
+
+Note: If you pass a number with more precision(more numbers after decimal point), it will **round it up** to the related type.
+For example when storing `1.12345677676` in a float4 column, it will store it as: `1.1234568`(it's rounded).
+
+#### decimal/numeric
+This type is like the bigint of floating point numbers!
+
+Up to 131072 digits before the decimal point and up to 16383 after the decimal point.
+
 ## 162-162 - Storing Arrays
 ## 163-163 - Data Models And Naming Conventions
 ## 164-164 - CREATE TABLE
