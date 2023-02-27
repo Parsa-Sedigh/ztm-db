@@ -484,7 +484,49 @@ This type is like the bigint of floating point numbers!
 Up to 131072 digits before the decimal point and up to 16383 after the decimal point.
 
 ## 162-162 - Storing Arrays
+An array is nothing more than a group of elements of the same type.
+
+An array is denoted by a bracket syntax.
+
+Every data type in postgres has an array equivalent.
+
 ## 163-163 - Data Models And Naming Conventions
+### Let's create data
+We've created our DB. All that's left to do is put in data, right?
+
+### Before we start
+Hold up! What do we put in?
+
+### Database models
+Usually before creating a DB, we create a model!
+
+A model would help you think ahead up front and not have to make as many changes as you go along. A little bit of thinking ahead, will take you away farther.
+
+Note: A model is a design that is used to visualize what we are going to build.
+
+An entity relationship diagram:
+![](../img/163-163-1.png)
+
+An entity relationship diagram is what we would use to create that model.
+
+The lines between entities are called **crow's feet notation** which tell us what kind of relationship is being formed.
+
+### Naming conventions
+Table names must be singular!
+
+Because when we read the relationship, we can read it in that way(singular).
+
+Columns must be lowercase with underscores.
+
+Since it's case insensitive, you can store uppercase or lowercase. Storing columns in lowercase with underscores is because you don't have to use the
+quotation marks.
+
+Columns with mixed case are acceptable. For example you can name a column: student_ID
+
+Columns with uppercase are unacceptable.
+
+Be consistent, write down your rules.
+
 ## 164-164 - CREATE TABLE
 ## 165-165 - Extra information on CREATE TABLE
 File
