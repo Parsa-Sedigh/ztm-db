@@ -528,22 +528,209 @@ Columns with uppercase are unacceptable.
 Be consistent, write down your rules.
 
 ## 164-164 - CREATE TABLE
+```sql
+CREATE TABLE <name> (
+    <col> TYPE [CONSTRAINT],
+    table_constraint [CONSTRAINT]
+) [INHERITS <existing_table>];
+```
+
+```sql
+CREATE TABLE student (
+    student_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    date_of_birth DATE NOT NULL
+);
+```
+We could add a constraint oon email to make it follow a particular pattern, OR, we could offload that onto hte software that's trying to fill
+sth in the DB. If it's a person filling gin data(instead of software), you may want to put some constraint on email field.
+
+To execute the command above, first connect to the related DB:
+```shell
+psql -U postgres ztm
+\conninfo
+```
+
+When you run the above query for creating the student table, itt will throw an error that says: `uuid_generate_v()` no function matches the given name
+and argument types. You might need to add explicit type casts.
+
+To fix this, we need to create an extension. These are extensions on top of postgres that allow it to extend it's functionality. So run:
+```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+This extension, extends the ability of UUID type.
+
+Now run the create table for student again.
+
+Then run `\dt` to confirm that.
+
+To look at the structure of a table, run:
+```shell
+\d <name of the table>
+```
+
 ## 165-165 - Extra information on CREATE TABLE
-File
+The CREATE TABLE statement is the most important command when making a database, depending on the DBMS you are using the options may vary heavily.
+In Postgres there are many things you can do with this statement.
+
+We wanted to leave a couple of notes on the creation syntax!
+
+### Normal tables
+```sql
+CREATE TABLE <name> (
+    <col1> TYPE [CONSTRAINT],
+    table_constraint [CONSTRAINT]
+) [INHERITS <existing_table>];
+```
+By default any time you run the `CREATE TABLE` command you will be creating an object in the public schema, unless otherwise specified.
+
+Think of database design like drafting a blueprint for a house, and when you’re creating a table you’re drafting a blueprint for a specific room.
+What you put on that blueprint will determine how that room is going to look!
+
+In our videos you saw us using this syntax to create many different tables with varying constraints, types and keys.
+
+For the most part creating tables is the easy part, the hardest part is drafting the blueprint upfront so that you know what steps to follow.
+This is why database design and modelling is so crucial.
+
+### Temporary tables
+One thing we did not touch on during these videos is the ability to create temporary tables. They are a type of table that exist in 
+a special schema, so you cannot define a schema name when declaring a temporary table.
+```sql
+CREATE TEMPORARY TABLE <name> (<columns>);
+```
+
+These types of tables will be dropped at the end of your session. It’s important to also note that they are only visible to the creator.
+
+Now you may be wondering, why would I ever use these? Well if you’re writing intensive queries against a data set it might 
+be beneficial to temporarily create a table based off another table.
+
+This is because:
+
+- Temporary tables behave just like normal ones
+- Postgres will apply less “rules” (logging, transaction locking, etc.) to temporary tables so they execute more quickly
+- You have full access rights to the data, if you otherwise didn’t so you can test things out.
 
 ### 165 - Create Table documentation
 https://www.postgresql.org/docs/12/sql-createtable.html
 
 ## 166-166 - Column Constraints
+### Constraints
+Constraints are a tool to apply validation methods against data that will be inserted.
+
+### Column constraints
+A column constraint is defined as part of a column definition.
+
+![](../img/166-166-1.png)
 
 ### 166 - The importance of constraints
 https://www.longdom.org/open-access/on-the-paramount-importance-of-database-constraints-2165-7866-1000e125.pdf
 
 ## 167-167 - Table Constraints
+A table constraint definition is not tied to a particular column and it can encompass more than one column.
+![](../img/167-167-1.png)
+
+![](../img/167-167-2.png)
+
+To write a table-level constraint, at the bottom, after all the columns are defined, you need to give it a name, like: pk_<column name in table>.
+
+Every column constraint can be written as a table constraint.
+
+An example of column constraint:
+`email TEXT CHECK (email ~* '^[A-Za-Z0-9._%-]+@[A-Za-z0-9.-]+[.][A-Za-z]+$')`
+
 ## 168-168 - Regexes
-File
+When it comes to Regular Expressions there are many avenues to take to learn and apply this skill. It in itself is a language that crosses
+the barriers of each programming language and can be used to validate complex text patterns. Regex comes in multiple "flavours" or what
+we would like to call "variations".
+
+It usually finds its place in applying validations to make sure what a user is inputting matches an expectation. That expectation could be anything:
+- An e-mail 
+- A phone number 
+- An address 
+- A postal code
+
+When it comes to data we often have unique ways of writing these things, and they vary from country to country so it is extremely important to be
+able to know what inputs are expected and validate/sanitize inputs so they match your expectation.
+
+Different languages can have slight variations on how they choose to implement Regex, but they often do not differ heavily.
+
+At the end of the day, what we want to achieve is clean data and we have all of these mechanisms in place to help us, writing constraints is a hard job.
+For learning Regex there are thousands of resources that can teach you, help you verify and supercharge your skills. We've curated a 
+list here of learning resources that we found extremely valuable and helpful:
+
+- Regex for regular folk https://refrf.shreyasminocha.me/ - A fun, illustrative and simple guide to learning regex 
+- Regex Crossword https://regexcrossword.com/ - Challenging puzzles to practice your Regex-fu 
+- Regex Search https://ihateregex.io/ - A tool to find quick and easy regex references 
+- Regex Tester https://regex101.com/ - A Regex testing tool that supports multiple flavours
+
+When to use column-level constraint vs table-level?
+
+If you can define a constraint that is at the column level, make it a column level constraint, but if it encompasses multiple columns,
+make it a table-level constraint. So if a constraint is related to one-column, make it a column-leve constraint, if it's related to multiple columns,
+write it as a table constraint.
+
 ## 169-169 - UUID Explained
+### Using UUID fields
+```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+We need to install an extension.
+
+### Extensions
+```sql
+SELECT * FROM pg_available_extensions;
+```
+These are pieces of software that allow you to expand what postgres can do or expand how certain processes run.
+
+### UUID
+The extension allows us to generate unique identifiers for primary keys.
+
+UUID stands for universally unique identifier.
+![](../img/169-169-1.png)
+
+But why we would use them instead of just simple numbers?
+
+The purpose of using them is it's another point of contention. Not everyone is a fan of UUIDs.
+![](../img/169-169-2.png)
+
+You use sharding when your DB is getting extremely large.
+
+One pro of UUID is it's easier to merge/replicate data. About the merge part: when you're merging two tables. Lets say they have 2 userId columns.
+Now imagine if they had 2 users with the id as 9. That's very bad. But with UUiD, this won't happen.
+
+Where you can and where it seems valid, try to use UUIDs as much as possible for your primary keys.
+
+When you're starting off, use UUIDs for your primary keys as much as possible.
+
+You can use an auto-incrementing number besides the UUID column for easy indexing and other reasons.
+
 ## 170-170 - Custom Data Types And Domains
+### Custom data types
+In this data model, we decided it would be good to show how to make a custom data type
+
+Postgres doesn't have custom data type out of the box.
+
+**Note:** Instead of making the feedback field a custom data type, we could create a separate table for it.
+![](../img/170-170-1.png)
+So this particular custom data type, isn't a good decision, but we'll get to that.
+
+Postgres allows you to create custom data types to store shapes of data that are more complex.
+
+A domain is a specific type of data that can have a CHECK. In other words, a domain is an alias for an existing type that can have constraints and
+default values. But a TYPE, is an independent type, so a domain and type are different.
+
+```sql
+CREATE DOMAIN Rating SMALLINT CHECK ( VALUE > 0 AND VALUE <= 5);
+
+CREATE TYPE Feedback AS (
+    student_id UUID,
+    rating Rating,
+    feedback TEXT
+);
+```
+
 ## 171-171 - Creating The Tables For ZTM
 ## 172-172 - Extra information on ALTER TABLE
 
