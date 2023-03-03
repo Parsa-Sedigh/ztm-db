@@ -109,7 +109,6 @@ In text, we would have: `'abc' > 'ace'` (b is ahead of c in alphabet)
 
 Who over the age of 44 has an income of 100000?
 
-
 ## 68-68 - Exercise Comparison Operators
 File
 ## 69-69 - Logical Operators

@@ -721,10 +721,13 @@ Postgres allows you to create custom data types to store shapes of data that are
 A domain is a specific type of data that can have a CHECK. In other words, a domain is an alias for an existing type that can have constraints and
 default values. But a TYPE, is an independent type, so a domain and type are different.
 
+The order of creating objects is important in this example.
 ```sql
 CREATE DOMAIN Rating SMALLINT CHECK ( VALUE > 0 AND VALUE <= 5);
 
-CREATE TYPE Feedback AS (
+/* We used double quotes to name the object we want to create exactly as it is(with case sensitivity). Because the default is to
+create it in case-insensitive way. So if you didn't use double quotes, it twill be created as feedback and not Feedback.*/
+CREATE TYPE "Feedback" AS (
     student_id UUID,
     rating Rating,
     feedback TEXT
@@ -732,29 +735,323 @@ CREATE TYPE Feedback AS (
 ```
 
 ## 171-171 - Creating The Tables For ZTM
+First create the tables that don't have foreign keys to other tables.
+
+```sql
+CREATE TABLE student (
+    student_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- PRIMARY KEY is a constraint
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    date_of_birth DATE NOT NULL
+);
+
+/* We can't create enrollment table because it has course_id and student_id as foreign key. So let's create course table.
+   
+   But the course table also needs a foreign key to teacher and student. So let's create the subject table.*/
+   
+CREATE TABLE subject(
+    subject_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    subject TEXT NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE teacher(
+    teacher_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    email TEXT
+);
+
+-- We forgot the email field on student table:
+ALTER TABLE student ADD COLUMN email TEXT;
+
+CREATE TABLE course(
+    course_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "name" TEXT NOT NULL, -- name is a reserved keyword, so we need to wrap it with double quotes
+    description TEXT,
+    subject_id UUID REFERENCES subject(subject_id),
+    teacher_id UUID REFERENCES teacher(teacher_id),
+    feedback "Feedback"[] -- since we created the Feedback type as case-sensitive, we need to use double quotes when referencing it as well.
+);
+
+CREATE TABLE enrollment(
+    course_id UUID REFERENCES course(course_id),
+    student_id UUID REFERENCES student(student_id),
+    enrollment_date DATE NOT NULL,
+    CONSTRAINT pk_enrollment PRIMARY KEY (course_id, student_id)
+);
+```
+
+**Tip:** When you want to apply a cse sensitivity, like creating a custom type or other DB objects, use double quotes. For example
+if you want to create a custom type named Feedback with uppercase f, you have to write it's name in the command with double quotes.
+So the command would be: `CREATE TYPE "Feedback" AS (...);`. If you don't do this, it will be created as feedback and not Feedback.
+
+Also when you create sth with double quotes, you need to reference it with double quuotes as well, otherwise it won't find that object.
+
 ## 172-172 - Extra information on ALTER TABLE
+ALTER TABLE is a super powerful yet humble command, yes you heard me humble! I joke, but at the same time, this one command really
+has a large impact on your database.
+
+As you saw throughout this section I used it to correct some mistakes, add some constraints, etc. but we really didn’t dive deeply
+into the power that lies dormant in this command.
+
+You may be asking yourself why, but if I were to tell you every possible way you could apply this command there would be an endless amount of
+videos to supply for each use-case. Our main focus is to build your solid foundation and knowledge is power. Knowing how to apply this command is
+half the battle, knowing when and where to apply it, well that’s the fun puzzle that awaits you on your SQL journey!
+![](../img/172-172-1.png)
+
+As you can see in the above image, the image ALTER command has many things that it can change, from adding and removing columns to renaming them and 
+changing their definition. However, there’s so much more you can do with it!
+
+- Change the SCHEMA of a table 
+- Change the name of a table-level CONSTRAINT 
+- Add and remove constraints 
+- Change a column level constraint
+
+Our main advice when using this command is to make sure you communicate changes early and set in place a plan for other
+systems/software to be able to migrate, the last thing you want to happen is changing a column and suddenly all your services start breaking!
 
 ### 172 - Alter Table documentation
 https://www.postgresql.org/docs/12/sql-altertable.html
 
 ## 173-173 - Adding Students And Teachers
+In what order do I go ahead and create data?
+
+That's very dependent on the user journey.
+
+Let's create a student:
+```sql
+-- note: The student-id field will be auto manipulated by postgres
+INSERT INTO student (
+    first_name,
+    last_name,
+    email,
+    date_of_birth
+) VALUES (
+   'Mo',
+    'Binni',
+    'mo@binni.io',
+    '1992-11-13'::DATE
+);
+
+INSERT INTO teacher (
+    first_name,
+    last_name,
+    email,
+    date_of_birth
+) VALUES (
+             'Mo',
+             'Binni',
+             'mo@binni.io',
+             '1992-11-13'::DATE
+);
+```
+
+The first flaw of this data model is that we completely separated the concept of a teacher and a student but we don't have a
+holistic user to which we could give a role, not a DB role but like the role of teacher and student and they could be both at the same time.
+But currently, they're completely separate entities. But the problem is now how you would let them log in? What if they wanna bee a teacher and a 
+student at the same time? Because for example, Mo the student and Mo the teacher, although they have unique ids, they're 
+theoretically the same email address. SO by using the same email address, how they would log in?
+
+We could maybe create a user table and we could have a user_id and we could have a is_student or a is_teacher flag and everyone by default that registers,
+is considered a student, but being a teacher is opting in.
 
 ### 173 - Postgres INSERT syntax
 https://www.postgresql.org/docs/12/sql-insert.html
 
 ## 174-174 - Creating A Course
+Some commands for practicing:
+```sql
+INSERT INTO subject (
+    subject,
+    description
+                     
+) VALUES (
+    'SQL',
+    'A database management language'
+);
+
+INSERT INTO course (
+    "name", -- we need these double quotes since name is a reserved word in SQL
+    description
+
+) VALUES (
+    'SQL zero to mastery',
+    'The #1 resource for SQL mastery'
+);
+
+/* Currently, we can create a course without subject_id and teacher_id(they can be NULL). So we need to update the constraints there.
+So we need the ALTER TABLE command. But before we can even alter it, since we have some NULL values there, first we need to delete the
+records that are NULL in the column we want to make it NOT NULL. So what should we do here?
+   
+We need migration scenario. In this case, we need to fill in the columns which we want to make NOT NULL.
+   
+So before a ALTER TABLE command, we need to update the records that would cause problems:*/
+UPDATE course SET subject_id = '8ecb03b3-b034-4e6b-a09c-601579508f60' WHERE subject_id IS NULL;
+
+-- now run:
+ALTER TABLE course ALTER COLUMN subject_id SET NOT NULL;
+
+-- now for teacher_id, we should make it have NOT NULL constraint:
+UPDATE course SET teacher_id = 'e2d090a3-5056-4361-85e2-b41c55c34bd5' WHERE teacher_id IS NULL;
+ALTER TABLE course ALTER COLUMN teacher_id SET NOT NULL;
+```
+
 ## 175-175 - Adding Feedback To A Course
+```sql
+INSERT INTO enrollment (student_id, course_id, enrollment_date) VALUES (
+    '465526bb-0a0b-4b01-803b-d6ff91ab92ed',
+    'f773b5af-0f00-47c1-90b4-99a2aa919a91',
+    NOW()::DATE
+);
+
+UPDATE course SET feedback = array_append(
+    feedback,
+    ROW(
+        '8ecb03b3-b034-4e6b-a09c-601579508f60', -- student_id
+        5, --score
+        'Great course!' --feedback
+    )::"Feedback" -- in vid, this is called feedback.
+)
+WHERE course_id = 'f773b5af-0f00-47c1-90b4-99a2aa919a91';
+```
+The drawback here is we can put whatever valid UUID(as long as we fall into proper range of a UUID) as student_id in this command!
+So we can't validate the subtend_id inside a feedback.
+
+Another drawback is we need to do an UPDATE instead of INSERT. We don't want too update the course, instead we want to insert a feedback
+with an INSERT command and we want to keep it separate from course.
+
+To fix this, we need to change the data model.
+
 ## 176-176 - A Tale Of 2 Feedbacks
+We need to shape our custom Feedback data type into a table and the reason for this is when we use tables, we can follow
+the relational model. There's so much you can do with tables that you can do with custom data types. Custom data types
+don't allow you to do checks, foreign key references and ... .
+
+Also doing this, will make work easier.
+
+So the model will change to this:
+![](../img/176-176-1.png)
+
+We need to do a migration of taking the Feedback array and values of that array and putting them into the new feedback table.
+```sql
+CREATE TABLE feedback(
+    student_id UUID NOT NULL REFERENCES student(student_id),
+    course_id UUID NOT NULL REFERENCES course(course_id),
+    feedback TEXT,
+    rating rating,
+    CONSTRAINT pk_feedback PRIMARY KEY (student_id, course_id)
+);
+```
+
+Since we need to make student_id and course_id together as primary key, we need to give them NOT NULL constraint too.
+
+Now if you run this, it's gonna throw an error and says: `ERROR: relatioon "feedback" alreeady exists` and this is because
+we already have a database object named feedback(if you renamed it to Feedback, you won't get this error!).
+
+So remove that feedback custom data type or rename it to `feedback_deprecated` and also rename the feedback column of
+course table to `feedback_deprecated`.
+
+Now you can create the feedback table.
+```sql
+INSERT INTO feedback(
+    student_id, course_id, feedback, rating
+) VALUES (
+    '465526bb-0a0b-4b01-803b-d6ff91ab92ed',
+    'f773b5af-0f00-47c1-90b4-99a2aa919a91',
+    'This was great',
+    4
+);
+```
+
 ## 177-177 - SQL Exercises
-File
+Alllllright! We've seen so many SQL commands and it's time to put all of that knowledge to the test the
+following link will take you to a series of exercises that you can power through!
+
+Some of these exercises may be familiar as we've solved a couple early on, but now it's time to put all your knowledge to
+the test!
+
+https://www.w3schools.com/sql/sql_exercises.asp
+
 ## 178-178 - SQL Quiz
+Take the following quiz to test out all the knowledge you've gained so far!
 
 ### 178 - SQL quiz
 https://www.w3schools.com/sql/sql_quiz.asp
 
 ## 179-179 - Backups And Why They Are Important
+Some of the way that you can go about formulating a strategy around your backups.
+
+### Have a plan
+3 things you need when you're thinking about backups
+1) backup plan
+2) disaster recovery plan: This plan tells you exactly what to do when a DB went down.
+3) test your plans
+
+### What can go wrong?
+When everything is on premise, we have our own hardware and servers, we need to think on our backup strategy.
+
+Even when you're in the cloud(AWS), you need to think about backup strategy, you can't rely on these cloud defaults 100%.
+
+- hardware failures: We can have fault tolerance at hardware level.
+- viruses
+- power outages
+- hackers
+- human error
+
+### How do I make a backup plan?
+1. Determine what needs to be backed up. Always do a full backup of your DB first.
+#### What to backup
+First, you need to do a full backup and then, you can do other types of backups.
+
+1. full backup  
+2. incremental: When you do an incremental backup, you're backing up everything that changed since the last incremental backup(since the prev backup)
+3. differential: This is always everything that changed **since the last full backup**. So the incremental backup is always faster than differential backup.
+Because the differential backup is always going to take a backup of everything that changed since the first full backup. You may want to
+take full backups more frequently to keep the differential backups going fast.
+4. transaction log
+
+![](../img/179-179-1.png)
+
+You can do a full backup at the start of month and a differential at the end of the month and if there is a disaster, you only hae to run one full backup and one
+differential. But it depends on DB.
+
+These backups have different levels of freshness. A transaction log backup is the freshest.
+
+2. What's the appropriate way to back up?
+Are we going gto back up the operating system or are we going to back up at the hardware level or are we just going gto back up the DB itself?
+
+3. Decide how frequently you're going to back up
+
+![](../img/179-179-2.png)
+
+Transaction log backup should be a lot because if a disaster strikes in that minute, you wanna be able to backup to the spot by the minute where the last
+transaction happened and hopefully the rest of the system catches that failure and stop the transactions from happening, so that you don't lose a lot of data.
+Transaction logs backup can happen for example every 15 minutes.
+
+4. Decide where you're going to store them(where are the backup servers?)
+5. Have a retention policy for backup(how long we're gonna keep this backup?). For example if you're in medical or financial space, you may have to
+keep records for up to 10 years!
 
 ## 180-180 - Backing Up In Postgres
+We can create dump files in different ways:
+
+We can export them as scripts that can be easily run against a different RDBMS and is readable or we could create them as backup files which aren't SQL
+commands generally speaking but postgres can understand to back up and restore more quickly.
+
+**pgBackRest** is a tool for backup and restore.
+
+In valentina studio, we can right click on DB > create dump.
+
+SQL, tar and custom options are the most popular dump types.
+
+The structure only option in valentina studio when creating a dump, is gonna take only the tables, relationship and their constraints.
+
+Structure and records both the table, constraints and ... and data.
+
+If you have a an extremely large DB, you don't want to store it all in one text file. There are more efficient backups. That's why we have
+hardware backups which is cloning hard drives.
 
 ### 180 - pgBackRest
 https://pgbackrest.org/
@@ -763,4 +1060,99 @@ https://pgbackrest.org/
 https://www.postgresql.org/docs/12/backup.html
 
 ## 181-181 - Restoring A Database
+We want to restore our backup(like a SQL dump file).
+
+The way you decide to create a backup, influences the way that you're able to restore that dump.
+
+You can use **Load dump** option in valentina studio. You have 2 options there: 
+1. Database: Restore to a DB(existing)
+2. Connection
+
+Deselect `execute multiple dump statements` option.
+
+In vid, since we decided to generate the SQL script dump file with a `CREATE DATABASE` command, valentina studio had a problem on the restoring the dump.
+
+We could fix the script ourselves, but let's just load the dump as it is.
+
+Normally you would load the dump against the DB and it would insert everything into it. But now we want to run a script because that's' what we 
+generated as dump, is a script.
+```shell
+psql -d postgres
+\conninfo
+\i <path to the sql dump file>
+```
+
+GUIs although easy to generate backups, can generally make it more difficult to restore. For example in vid, we needed to restore the backup through CLI
+and we had problems with it when using valentina studio. Because the script was built by **psql** to be run in command line, not to be run in valentina studio. 
+So even though the valentina studio can't process the script, it generated the correct script(sql dump) with the psql command.
+
 ## 182-182 - Transactions
+### Transactions
+A DB is a shared resource, so many users may access it concurrently.
+
+A transaction is a unit of instructions(query for instance) that is going to run in isolation and not affect the state of the DB until it's done.
+
+Een when you're doing a SELECT, it's a read transaction. Yeah, that won't alter the state of DB but nevertheless, wee consider it a transaction because
+you're transacting with the DB, you're giving it a instruction.
+
+The concept of transaction, is to keep things consistent. 
+
+So how do we keep things consistent?
+
+Whatever happens during the transaction, stays in that transaction until you either decide that you want to commit or roll it back.
+
+The DBMS has a mechanism in place to manage transactions.
+
+### Lifecycle of a transaction
+![](../img/182-182-1.png)
+For the SELECT statements, it will never get into a failed state, because it's a read-only transaction.
+
+When we're in a partially committed state, its not persisted to the DB just yet, to prove this, if you open up another terminal window and connect to the
+DB(another connection session) that has a transaction in partially committed state and look at the data, you see the old state.
+
+Also when a transaction is happening(like if it's in partially state), since we know when a transaction is happening, it will lock the resources that it's
+using, now, if you in another connection session, start another transaction and use those locked resources in that new session, the command **will hang**!
+
+Like:
+```shell
+BEGIN;
+DELETE FROM employees WHERE emp_no BETWEEN 10000 AND 10005;
+# We haven't commit this transaction yet
+```
+Then on another session:
+```shell
+BEGIN;
+DELETE FROM employees WHERE emp_no BETWEEN 10000 AND 10005;
+# This will hang here! NOthing will happen because the resource is already locked
+```
+
+You can write `COMMIT;` or `END;` to commit a transaction.
+
+To maintain the integrity of a DB, all transactions must obey **ACID** properties.
+
+### Atomicity
+Either execute entirely(all of the transaction) or not at all
+
+### Consistency
+Each transaction should leave the database in a consistent state(commit or rollback)
+
+if the transaction succeeds in whole, it's going to commit or if anything in the transaction fails(any of the quires in a transaction),
+it's going to rollback.
+
+### Isolation
+Transaction should be executed in isolation from other transactions.
+
+Also the order which the transactions occur, is important.
+
+Why?
+
+Because transaction A may affect how transaction B will execute, because transaction B may trying to access the same resources and so if they';re
+trying to access the same resources, if transaction A goes first and it changes sth, it may cause sth in transaction B to fail, so transaction B is gonna 
+roll back probably.
+
+Whatever happens in transaction A, isn't known to transaction B until time of commit or rollback.
+
+### Durability
+After completion of a transaction, the changes in the database should persist.
+
+So when your transaction commits, it's in the DB.
