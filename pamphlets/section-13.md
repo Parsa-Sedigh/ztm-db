@@ -1,4 +1,4 @@
-# 13 - Extras Redis
+# Section 13 - Extras Redis
 
 ## 265-265 - Quick Note Upcoming Videos
 Ready to learn about one of my favourite databases?
