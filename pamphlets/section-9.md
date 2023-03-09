@@ -253,9 +253,47 @@ When we choose a primary key(which will uniquely identify a row) but has nothing
 Instead of address which is not atomic enough, use these: street_name, street_nr, postal_code, state, city.
 
 ## 212-212 - Step 3 Relationships
+Determine the relationship between the entities.
+
+### What is a relationship?
+Links 2 entities together.
+- 1 to 1: One entity belongs to one of another entity. 
+- 1 to many
+- many to many
+
+We connect the entities with a line that tells us the relationship.
+
+![](../img/212-212-1.png)
+
+First line means the line that are connected directly to the entity(left end)
+
+Second line is like those circles. The constraints in the order of pics:
+
+zero or more(sth can have multiple values)            one and only one(sth needs to have a value and only one value)
+
+one or more(sth needs to have multiple values)        zero or one(sth can have a value but doesn't need to)
+
+Note: Second line is optional.
+
+As you can see, the first one is constraint and the second one is the relationship, for example in the first one(top left), the constraint is
+zero and the relationship is more(so first we read the constraint and then the relationship).
+
+Crowsfeet depict the type of relationship that can occur.
+
+![](../img/212-212-2.png)
 
 ## 213-213 - DRIVEME Relationships
+Taking 2 exams is a loos business constraint, so we don't implement it in DB level, instead we implement it in code level of our backend(it's a 
+loosely coupled constraint).
+
+![](../img/213-213-1.png)
+
+We don't have any many-to-many relationship in this system!
+
+No many to manys is great.
+
 ## 214-214 - Step 4 Solving Many To Many
+
 ## 215-215 - Step 5 Subject Areas
 ## 216-216 - DRIVEME Subject Areas
 ## 217-217 - Exercise Painting Reservations
