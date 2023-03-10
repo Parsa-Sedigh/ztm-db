@@ -168,8 +168,6 @@ Relational model have things like:
 
 relation schema, attributes, degree, cardinality, tuple, column, relation key, domain, tables, relation instance
 
-
-
 ## 207-207 - Relational Schema And Instance
 ### Relation schema
 Relation schema refers to the table schema. It's a representation of the data that's going to go into the table
@@ -293,13 +291,126 @@ We don't have any many-to-many relationship in this system!
 No many to manys is great.
 
 ## 214-214 - Step 4 Solving Many To Many
+In the relational model, it isn't possible to store a many to many relationship. **Technically**, you can do it, but you really don't want to.
+
+The reason for this is you're creating more overhead(you're over-complicating your system) like:
+- insert overhead
+- update overhead
+- delete overhead
+- potential redundancy(duplicate data)
+
+As a rule of thumb always try to resolve many to many.
+
+Ex: A book can have many authors and an author can write many books(many to many). The way we resolve this problem is:
+We put a middle entity named book_author(book author) and say:
+
+A book(one and only one) can have many book_authors but a book_author can only belong to 1 book and an author can be the author of many
+book_authors, but a book_author can only belong to 1 author.
+
+If we were to do a many-to-many relationship, we had to have multiple columns for author_id in the book table! and since the structure of a relational
+DB should stay the same(we can't change the number of columns), we should put the maximum number of authors that we can imagine for number of
+columns for author_id. Wow this is so bad!
+
+Also we should do the same in author table which is put a lot of book_id columns for each author!
+
+This scenario is the top of the pic below:
+![](../img/214-214-1.png)
+
+The correct way is to create a new entity named author_book(intermediate table) which is the bottom of the pic.
+
+Intermediate entities or tables are there to solve the many-to-many relationships. For example the enrollment table in student to course
+relationship which is a many-to-many relationship or the lesson intermediate table between student and instructor in Driveme project.
 
 ## 215-215 - Step 5 Subject Areas
+Divide entities into logical groups that are related(think schemas).
+
+The reason for this is when you split them into separate buckets, you can hand them off to different teams.
+
+You will not get entity relationship diagram fully fledged out from the first go. This needs time and iteration.
+
+When we look at subject areas you can think of them like schemas but not really, because you're never going to really go one to one from
+a subject area to a schema.
+
+Subject area rules:
+- all entities must belong to one subject area
+- an entity can only belong to one subject area
+- you can nest subject areas
+
 ## 216-216 - DRIVEME Subject Areas
+![](../img/216-216-1.png)
+
+Different interpretations lead to different subject areas. 
+
 ## 217-217 - Exercise Painting Reservations
+Let's answer some questions about the system:
+- What's the goal of the system?
+Track painting reservations for a wealthy man 
+- Who are the stakeholders?
+The owner of the system, museums
+
+Now let's follow our 5 steps of top-down to create an ERD of the system.
+
+### Step 1: Entities
+- painting
+- reservation
+- museum
+- artist
+
+Note: Museum makes reservations.
+
+### Step2: Attributes
+
+In step 2, we didn't add the primary keys and foreign keys.
+
+Note: Address attribute in museum is not a good attribute(we'll fix it later).
+![](../img/217-217-1.png)
+
+### Step 3: Relationships:
+![](../img/217-217-2.png)
+
+- An artist can have zero or more paintings. A painting can only belong to one artist(one our constraints)
+- A painting can have zero or more reservations and a reservation can belong to one or more paintings(in one reservation, you can book
+one or more paintings and a painting can belong to zero or more reservations, because overtime, reservations want to rent the same
+painting). **OH! We have a many to many relationship here! So we need to solve it using an intermediary entity.**
+- a museum can make zero or more reservations and a reservation can only belong to one and only one museum
+
+Step4: Many to many(fix it!)
+![](../img/217-217-3.png)
+
+### Step 5: Subject areas
+- `Reservation` and `reservation_detail` are part of administration.
+- painting and artist are part of inventory
+- museum is part of client
+
 ## 218-218 - Exercise Movie Theatre
+### Exercise: cinema
+An existing ERD for this exercise is:
+![](../img/218-218-1.png)
+
+The fixed many-to-many solution:
+![](../img/218-218-2.png)
+
+We named the intermediary table `showing`.
+
+Top-down -> we use ERD
+
 ## 219-219 - Bottom Up Design
+To create a data model from specific details like existing systems, legacy systems, databases that are already in use, ... .
+
+When we do bottom-up, we go from sth that exists and we're trying to migrate it to sth that is newer.
+
+We need to:
+1) identify the data(attributes)
+2) group them(entities)
+
+We won't use entity relationship diagrams here.
+
+Our goal is to create a "perfect" data model without redundancy(duplicate records) and anomalies from the existing data. In other words,
+the goal of the bottom-up approach is to take the existing data and create a data model that will be perfect(without redundancy and anomalies). 
+
 ## 220-220 - Anomalies
+
+
 ## 221-221 - Normalization
 ## 222-222 - Functional Dependencies
 ## 223-223 - Functional Dependencies 2
