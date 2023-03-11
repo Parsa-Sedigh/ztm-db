@@ -409,7 +409,33 @@ Our goal is to create a "perfect" data model without redundancy(duplicate record
 the goal of the bottom-up approach is to take the existing data and create a data model that will be perfect(without redundancy and anomalies). 
 
 ## 220-220 - Anomalies
+Modification anomalies are problems that arise when your database is not structured correctly. There are 3 types of anomalies:
+- update anomalies
+- insert anomalies
+- delete anomalies
 
+Note: All of the design techniques like ERD, top-down, bottom-up design, all of them come with the methodologies in order to create a **structure** that
+is correct that tries to reduce these anomalies.
+
+You don't want to have anomalies at all!
+
+### Update anomalies
+When we look at an update anomaly, what we're trying to do is make sure that changes apply to all of the related data.
+![](../img/220-220-1.png)
+Look at the above pic. Let's say that the branch Toronto changed their address. When we update the record and we do an UPDATE command,
+we need to make sure that each and every one of the Toronto branch records gets updated correctly.
+
+If we had 10 million users, when we update a simple address, we're gonna have to do a lot of updates. This is an update anomaly.
+
+What's the problem?
+
+We need to do a heavy update sth(address column of a customer's branch) because **the thing we wanna update isn't actually directly related to a customer**.
+Of course we need to know at which branch, a customer's bank at, but having it stored directly next to the customer, is causing issue. 
+
+Also you can see that we have redundancy here(the red rectangles).
+
+### Delete anomalies
+![](../img/220-220-2.png)
 
 ## 221-221 - Normalization
 ## 222-222 - Functional Dependencies
