@@ -437,6 +437,43 @@ Also you can see that we have redundancy here(the red rectangles).
 ### Delete anomalies
 ![](../img/220-220-2.png)
 
+In this case which has delete anomaly, if we delete the user number 3, it's branch will also be deleted and therefore we would lose important info.
+
+Why? Because we're storing the branch data with customer data. In other words, we have created a direct functional dependency between the customer and
+the branch and we don't want that. Of course we need to know at which branch a customer bank's is. But deleting a customer should not lead to us
+losing important info about branch, so by deleting a user, the branch info will also be deleted and since we don't have that branch info anywhere else,
+we lose important info so it's a delete anomaly.
+
+### Insert anomalies
+![](../img/220-220-3.png)
+
+When we add a customer, we may make a mistake about the address of the user's bank branch(the red one). Now we need to make sure the data is consistent,
+how do we make sure a wrong address would be prevented?
+
+In this case, we need to do some complex logic on server side or we need to write some code in DB on INSERT, in order to make sure if sth inserts it
+wrong, that stuff doesn't get stored.
+
+So INSERT anomalies don't let us to have data consistency.
+
+So this dependency between branch and customer, really needs to be separated. With bottom-up design, we will look at those dependencies between data and
+making them into their own entities. So in this case, we would have an entity named `branch`.
+
+When we do DB design techniques, what we're trying to do is cause low coupling between data(we don't want dependecies between data).
+
+### Normalised
+![](../img/220-220-4.png)
+Here, we split out the customer table to **only** care about customer data and it has a foreign key relationship using branch column and we have a 
+separate table named branch(now branch table only cares about branch info). We don't have some redundancy now. 
+branch_ids are not considered redundant info. 
+
+Note: Before this normalization, we had so many redundant data(address of the same branch was stored multiple times in records) and we also
+had anomalies.
+
+Note: Oftentimes redundancy and anomalies go hand in hand.
+
+We want the deps between data are as loosely coupled as possible, so that we don't have anomalies and redundancy in the same table and the way we do this
+in top-down is through entity relationship diagrams and in bottom-up is through a process called normalization.
+
 ## 221-221 - Normalization
 ## 222-222 - Functional Dependencies
 ## 223-223 - Functional Dependencies 2
