@@ -241,7 +241,7 @@ The super key encompasses all the different types of keys.
 
 When you use a key that is creating a uniqueness to a row and it's using a foreign key, we call that a compound key.
 
-Composit keys are keys that are formed between multiple columns to uniquely identify data, without using the foreign key.
+Composite keys are keys that are formed between multiple columns to uniquely identify data, without using the foreign key.
 ![](../img/210-210-2.png)
 
 ### Surrogate key
@@ -475,7 +475,61 @@ We want the deps between data are as loosely coupled as possible, so that we don
 in top-down is through entity relationship diagrams and in bottom-up is through a process called normalization.
 
 ## 221-221 - Normalization
+![](../img/221-221-5.png)
+
+Do we have an existing system or a new system?
+
+New system -> top-down design
+
+Existing system -> bottom-up design
+
+The end state of these designs(DB design) is to have a design(model) that has as little anomalies and redundancy as possible.
+
+These 2 techniques, although are specifically used for their respective approach, can be used for one another. For example you can
+use ERD after you do normalization in bottom-up, to validate your schema and in top-down, you can draw ERD and then you can do some normalization
+if you want to, to validate your ERD. So you can use both in your design.
+
+Using normalization is key to avoid these anomalies.
+
+To do normalization, we must understand 2 things:
+- functional dependencies
+- normal forms
+
 ## 222-222 - Functional Dependencies
+A functional dependency shows a relationship between attributes. It's showing a relationship between the data inside of a table. We're not talking about
+relationships between tables.
+
+Functional dependency exists when a relationship between two attributes allows you to uniquely determine the corresponding attribute's value.
+
+In the following section, we will refer to an entity as R and attributes as A and B.
+
+We say that A is functional dependent on B, when a value of B determines a value of A. So we have: B -> A (the arrow shows B can determine the value of A).
+The arrow is how we note a functional dependency.
+
+What does this mean?
+
+It means that based on the value of B, you can determine the value of A. 
+
+Let's say we have emp_no -> first_name . How do we know that this is a functional dependency?
+
+With emp_no , we will find one and only one first_name. But the reverse of this is not true. Because we could have a lot of first_name s that are
+the exact same. We can have 10 Jacks and they're all gonna correspond to a different emp_no. Therefore the emp_no is not functionally dependent on
+the first_name.
+
+General structure:
+
+determinant -> dependent
+
+Ex: 
+
+student_id -> birth_date
+
+Why this dependency is correct?
+
+Because based on the student_id, we will find unique birth_date of an individual. But the reversed, is not correct because based on birth_date, you may
+find multiple student_ids(it's not one and only one). In other words, there may be multiple students with the same birth_date. So student_id is not
+functionally dependent on birth_date.
+
 ## 223-223 - Functional Dependencies 2
 ## 224-224 - The Normal Forms
 
