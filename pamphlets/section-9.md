@@ -242,6 +242,7 @@ The super key encompasses all the different types of keys.
 When you use a key that is creating a uniqueness to a row and it's using a foreign key, we call that a compound key.
 
 Composite keys are keys that are formed between multiple columns to uniquely identify data, without using the foreign key.
+
 ![](../img/210-210-2.png)
 
 ### Surrogate key
@@ -518,7 +519,7 @@ the first_name.
 
 General structure:
 
-determinant -> dependent
+**determinant -> dependent**
 
 Ex: 
 
@@ -531,7 +532,40 @@ find multiple student_ids(it's not one and only one). In other words, there may 
 functionally dependent on birth_date.
 
 ## 223-223 - Functional Dependencies 2
+Q: Which one of the functional dependencies in the img are right?
+![](../img/223-223-1.png)
+
+Salary is not functionally dependent on emp_no or project_id. Because when we get a salary, the emp_no doesn't necessarily tell us the unique salary,
+because an employee can work on multiple projects. So there is no functional dep between salary and emp_no or salary and proj_id because emp_no or
+proj_id don't uniquely determine the salary. In other words, when we pick a proj_id we can get multiple salaries back.
+
+But when we combine proj_id and emp_no, we get a unique salary back.
+
+EX: A student can take multiple activities.
+![](../img/223-223-2.png)
+
+The correct answer is:
+
+student_no, activity -> contribution
+
 ## 224-224 - The Normal Forms
+![](../img/224-224-1.png)
+
+Each normal form aims to further separate relationships into smaller instances as to create less redundancy and anomalies.
+
+The further you split out your data into entities(so they would have primary key - foreign key relationship), the less problems you have with
+redundancy and anomalies, because the data is normalized.
+
+There are certain amounts of anomalies that you may find tolerable.
+
+Normal forms `0` through `BCNF` are the most common normal forms to run through.
+
+BCNF is also known as 3.5 .
+
+Normal forms 4 and 5 are there to further reduce anomalies(and redundancy) and the 6th NF is not yet standardized.
+
+Once you reach 3.5 or BCNF, you're in a good state. There may still be anomalies but they may be tolerable and runing through 4 and 5
+are used when you have specific scenarios that are causing specific anomalies. 
 
 ### 224 - Simple guide to normalization
 http://www.bkent.net/Doc/simple5.htm
@@ -540,9 +574,174 @@ http://www.bkent.net/Doc/simple5.htm
 https://www.cs.uct.ac.za/mit_notes/database/htmls/chp09.html
 
 ## 225-225 - Going from 0NF to 1NF
+### 0 NF(0 normal form)
+Data is in 0 normal form when it is un-normalized:
+1. have repeating groups of fields
+2. have positional dependence of data
+3. non-atomic data: Every row could store multiple values
+
+Normalization is a technique where we're trying to remove redundancy and anomalies and figure out the best format for our data. 
+
+### 1 NF
+1. eliminate repeating columns of the same data
+2. each attribute should contain a single value: Data needs to be atomic
+3. determine a primary key
+
+A repeating group means that a table contains two or more columns that are closely related. Repeating groups are different than repeating data.
+In repeating group means we have a many-to-many relationship where you have to store multiple repeated columns to acheive storing the data.
+Like storing multiple author columns because author and book have a many-to-many relationship(one author can write many books and a book can
+be written by multiple authors). We don't want this.
+
+Note: Repeating columns means you have to repeat a column multiple times in the table in order to get data available, like storing the author of a 
+book, multiple times.
+
+Two 0 NF examples:
+
+![](../img/225-225-1.png)
+![](../img/225-225-2.png)
+
+Color field has non-atomic data.
+
+We moved color to another entity named product_color to make it atomic.
+
+**AS you saw, in 0 NF, we may have repetitive columns and multiple values in a single field(non-atomic data).**
+
+1 NF:
+
+![](../img/225-225-3.png)
+![](../img/225-225-4.png)
+
 ## 226-226 - Going from 1NF to 2NF
+### 2 NF
+1. It is in 1 NF
+2. all non-key attributes are fully functional dependent on the primary key. So everything that's not a key, needs a functional dependency 
+on the primary key.
+
+
+In the example, we created a new entity named `author`.
+![](../img/226-226-1.png)
+
+In 1 NF, the author_name, author_email and author_email were repetitive **data** but not a repetitive group and therefore we shouldn't remove them
+in the first normal form. Now is this functional dependency correct? `book_id -> author_name`
+
+**No.** We can't uniquely derive the value of A based on B. They're not fully functionally dependent on each other. They may be partially dependent in some 
+cases. We would rather say: `author_id -> author_name`. This one is correct.
+
 ## 227-227 - Going from 2NF to 3NF
-## 228-228 - BoyceCodd Normal Form
+### 3 NF
+3 NF is a state in which you data model is:
+1. It is in 2 NF
+2. no transitive dependencies
+
+For the majority of databases, you normally never go past 3rd or even BCNF.
+
+### Transitive dependency
+`A` is functionally dependent on B and B is functionally dependent on `C`. `C` is transitively dependent on `A` via `B`.
+
+B -> A
+
+C -> B
+
+A ~> C
+
+It means: From B, we can uniquely derive one value of A and from C, we can uniquely derive one value from B and these mean that there's 
+transitive dependency between A and C and **we want to get rid of this transitive dependency**.
+
+We haven't got to BCNF yet.
+![](../img/227-227-1.png)
+Continue from above img:
+
+**Country**
+
+country_id
+
+country
+
+province
+
+---
+
+In the img, we can see that we have a transitive dep between **branch_no** and **country** and we should get rid of it(branch_no determines country
+through province). We need to split out province. So how are we gonna split out the **province**?
+
+**Note:** In 3 NF we need to solve transitive dependency(get rid of them).
+
+In the previous example, we made a mistake. Province is our entity not country(in order to remove the transitive dep). So:
+
+Province
+
+province_id
+
+---
+
+Replace branch_id in branch with province_id.
+
+By knowing the province we know the country but vice-versa is not correct. So by storing a **province_id** in the **branch** entity, we now know the
+**country**, but by keeping the country_id in branch, we had no idea in which province that specific branch would be.
+
+## 228-228 - BoyceCodd Normal Form(3.5 NF)
+1. It is in 3 NF
+2. For any dependency A -> B , A should be a super key
+
+A lot of 3 NF tables are already in BCNF, but there are specific ones that aren't. We want to change them a bit. For example if we have
+multiple candidate keys.
+Most relationships in 3NF are also in BCNF but not all of them.
+
+3NF allows attributes to be part of a candidate key that is not the primary key - BCNF does not.
+
+Candidate key: Minimum set of attributes that can form a primary key but aren't necessarily the primary key.
+
+Note: The attributes of an entity can form multiple candidate keys(there could be multiple choices for what could be a primary key).
+
+A relationship is not in BCNF if:
+1. the primary key is a composite key
+2. there is more than one candidate key
+3. some attributes have keys in common
+
+Multiple of these points need to be true in order to not be in BCNF. So even if these points are true, you may not always want to move to
+BCNF and the decision for this is on the level of normalization and fault tolerance you're willing to take.
+
+An example of sth that is not in BCNF:
+
+![](../img/228-228-1.png)
+Note: A tutor can tutor multiple students but a student can only have one tutor.
+
+What are our candidate keys?
+
+Either student_id and tutor_id or student_id and tutor_sin. So we're already in violation of what we would say is not in BCNF.
+
+The functional deps for this table:
+
+Are these functional deps true?
+
+tutor_id -> tutor_sin (if we have a tutor_id, we can get a unique tutor_sin, in other words, there's only one tutor_sin for every tutor_id)
+
+tutor_sin -> tutor_id
+
+---
+
+![](../img/228-228-2.png)
+For example, the first functional dep is incorrect. Because with a student_id, we can get multiple tutor_sin records. Since a tutor can tutor
+multiple students.
+
+![](../img/228-228-3.png)
+In pic above, because both of these combinations(left side of arrow) form candidate keys, tutor_id and tutor_sin are considered **prime attributes**.
+
+In this case, we have prime attributes that can form candidates keys which may potentially lead to primary key and they have a functional dep on another
+prime attribute(right side of the arrows).
+
+In BCNF you're not allowed to have functional dependencies against a prime attribute(an attribute that can be part of a candidate key)
+
+---
+
+An option to fix this, is maybe just get rid of tutor_id in general.
+
+Although this in theory, is correct, tutor_sin is extremely private info and you shouldn't not use it as primary key(because tutor_id is gone).
+
+If we fixed this example, we would have:
+![](../img/228-228-4.png)
+So we would have 2 entities.
+
 ## 229-229 - Why 4NF And 5NF Are Not Useful
 ### 229 - 4th normal form
 https://www.studytonight.com/dbms/fourth-normal-form.php
