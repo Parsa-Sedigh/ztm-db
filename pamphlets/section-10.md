@@ -126,7 +126,24 @@ my old employer, I wrote about the best practices. Enjoy the read!
 https://rangle.io/blog/how-to-store-user-passwords-and-overcome-security-threats-in-2017/
 
 ## 242-242 - Relational vs NoSQL PostgreSQL vs MongoDB Databases
+In mongodb we can update structure of data as we go, but in relational DB, we can't add or delete columns after we've already created the table.
+We could have downtime when changing the columns in relational DBs.
+
+Relational DBs are harder to scale horizontally(across multiple machines).
+
 ## 243-243 - Future Of Relational Databases
+NewSQL - distributed SQL databases. Examples: citus, vitess, Cockroach DB, google spanner
+
 ## 244-244 - Elasticsearch
+Pros:
+
+fast for searching
+
+Cons:
+- less reliable than a relational DB(but we don't care if sth doesn't show up in a search result)
+- slower to write data to
+
+We use a relational DB as our primary data store. Then we copy this data to elastic search.
+
 ## 245-245 - S3 Object Storage
 ## 246-246 - Top Databases To Use

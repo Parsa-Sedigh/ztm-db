@@ -743,8 +743,17 @@ If we fixed this example, we would have:
 So we would have 2 entities.
 
 ## 229-229 - Why 4NF And 5NF Are Not Useful
+### 4 NF/5 NF/6 NF
+
+Note: You can combine methodologies, for example when you do a normalization procedure, you can create your ERD to validate your assumptions against
+the relationships.
+
 ### 229 - 4th normal form
 https://www.studytonight.com/dbms/fourth-normal-form.php
 ### 229 - 5th normal form
 https://www.studytonight.com/dbms/fifth-normal-form.php
 ## 230-230 - Exercise Database Design Quiz
+It's been quite the journey, from zero to mastery one would say! I'm so happy that you joined us on this journey and I hope you
+enjoyed every part of the course as much as I enjoyed teaching it. I wanted to end on a fun little quiz to probe your database design knowledge.
+
+https://www.jetpunk.com/user-quizzes/1336712/database-design-quiz
